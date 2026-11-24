@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Furutoppen">
+<meta name="theme-color" content="#0a0d13">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Furutoppen</title>
+<style>
+/* VOICE: a calm wall controller; few words, the room and its number are the hero
+   IDEA: a brushed-metal rotary dial — turn the outer wheel, the room under the pointer is active
+   PICTURE: home = the room wheel; room = one big knob with heat, dimming and a colour wheel inside
+   COLOUR and TYPE: night graphite, amber heat, gold light, blue for cold; system rounded type
+   LAYOUT: one column up to 560px, everything centred on the dial */
+:root{--f:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;--bg:#0a0d13;--panel:#141a24;--line:#252e3c;--ink:#eef1f6;--mut:#8b94a5;--warm:#f08a35;--gold:#f5c542;--man:#ffb54a;color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:radial-gradient(900px 600px at 50% -10%,#1b2434 0,var(--bg) 65%),var(--bg);color:var(--ink);font:16px/1.45 var(--f);overflow-x:clip}
+[hidden]{display:none!important}
+.app{max-width:560px;margin:0 auto;padding:16px 16px 22px;position:relative}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+h1{font-size:30px;line-height:1.1;margin:0;font-weight:900}
+.date{color:var(--mut);font-weight:700}
+.icbtn{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink);display:grid;place-items:center;cursor:pointer;flex:none}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 2px}
+.pb{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:800;white-space:nowrap}
+.pb span{color:var(--mut)}
+.wheel{display:block;width:100%;aspect-ratio:1;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline:none;margin:4px 0}
+.wheel:active{cursor:grabbing}
+.wheel text{font-family:var(--f);fill:var(--ink)}
+.wheel:focus-visible{outline:3px solid #9cc0ff;outline-offset:-6px;border-radius:50%}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:14px 16px;display:flex;gap:14px;align-items:center;margin-top:10px}
+.card b{display:block;font-size:17px}.card span{color:var(--mut);font-size:15px}
+.card .ic{flex:none;width:44px;height:44px;border-radius:14px;background:#1d2533;display:grid;place-items:center;color:#9cb4e8}
+.card.alert .ic{background:#3a2412;color:var(--warm)}
+.wide{width:100%;margin-top:10px;display:flex;justify-content:center;align-items:center;gap:10px;font:800 17px var(--f);background:#1b2331;border:1px solid var(--line);color:var(--ink);border-radius:22px;min-height:58px;cursor:pointer}
+.wide span{color:var(--mut);font-weight:700;font-size:15px}
+.wide:disabled{opacity:.5;cursor:default}
+.modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.mode{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:18px;background:var(--panel);border:1px solid transparent;color:var(--mut);font-weight:800;font-size:14px}
+.mode.on{color:var(--ink);border-color:#5a6a85;background:#1c2536}
+.menu{position:absolute;right:16px;top:70px;z-index:5;background:#182030;border:1px solid var(--line);border-radius:18px;padding:6px;display:flex;flex-direction:column;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.menu button{font:800 16px var(--f);color:var(--ink);background:none;border:0;text-align:left;padding:12px 16px;border-radius:12px;cursor:pointer;min-width:180px}
+.menu button:hover{background:#222c3e}
+/* room */
+.rhead{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.rhead h2{margin:0;font-size:26px;font-weight:900;line-height:1.1}
+.rhead .date{font-size:15px}
+.knob{position:relative;width:100%;max-width:420px;aspect-ratio:1;margin:0 auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.knob>svg{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+#disk{position:absolute;left:12.667%;top:12.667%;width:74.667%;height:74.667%;border-radius:50%;overflow:hidden;box-shadow:inset 0 0 34px rgba(0,0,0,.45)}
+#disk.pick{cursor:crosshair}
+.kc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;gap:2px;padding:12%}
+.kc .nm{font-weight:800;font-size:18px;color:#fff3e6}
+.big{font-weight:900;font-size:clamp(56px,17vw,88px);line-height:1;letter-spacing:-.02em;color:#fff;white-space:nowrap}
+.big small{font-size:.4em;vertical-align:.95em;margin-left:2px}
+.now{color:#fff0e0;font-weight:700;font-size:15px;white-space:nowrap}
+.pill{margin-top:8px;font-size:13px;font-weight:800;padding:5px 12px;border-radius:999px;background:rgba(0,0,0,.3);color:#fff0e0;white-space:nowrap}
+.pill.man{color:var(--man)}
+.mk{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.55);pointer-events:none}
+.cw{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);display:flex;background:rgba(20,24,32,.78);border-radius:999px;padding:3px;pointer-events:auto}
+.cw button{border:0;background:none;color:#cfd5de;font:800 13px var(--f);padding:7px 13px;border-radius:999px;cursor:pointer}
+.cw button[aria-pressed=true]{background:#fff;color:#111}
+.kval{text-align:center;font-weight:800;font-size:17px;color:var(--gold);margin:8px 0 0;min-height:24px}
+.lamps{display:flex;gap:8px;overflow-x:auto;padding:8px 2px;scrollbar-width:none}
+.lamps::-webkit-scrollbar{display:none}
+.lamp{flex:none;display:flex;align-items:center;gap:8px;padding:9px 14px;min-height:44px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:700 14px var(--f);cursor:pointer;white-space:nowrap}
+.lamp i{width:9px;height:9px;border-radius:50%;background:#3a4354}
+.lamp i.on{background:var(--gold);box-shadow:0 0 6px var(--gold)}
+.lamp[aria-pressed=true]{border-color:var(--gold);background:#2a2412}
+.under{display:flex;flex-direction:column;align-items:center;gap:8px;margin:8px 0 4px}
+.power{width:76px;height:76px;border-radius:50%;border:0;background:#fff;color:var(--warm);display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.power.off{background:#1c2331;color:#aab2c0;border:1px solid var(--line)}
+.plabel{font-weight:800;color:var(--mut);font-size:14px}
+.btn{font:800 15px var(--f);border-radius:999px;padding:11px 20px;min-height:44px;cursor:pointer;border:1px solid var(--man);background:var(--man);color:#2a1700}
+.btn:disabled{opacity:.35;cursor:default}
+ul.devs{list-style:none;margin:6px 0 0;padding:0;border-top:1px solid var(--line);width:100%}
+.devs li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:11px 4px;border-bottom:1px solid var(--line)}
+.devs .n{font-weight:700}.devs .s{color:var(--mut);font-size:14px}
+.devs .v{font-weight:800;white-space:nowrap}
+.tag{font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;background:#202938;color:var(--mut);white-space:nowrap}
+.tag.h{background:rgba(240,138,53,.18);color:var(--warm)}.tag.m{background:rgba(255,181,74,.18);color:var(--man)}
+.tabs{display:flex;justify-content:center;gap:4px;margin-top:16px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--mut);font:800 14px var(--f);cursor:pointer}
+.tab .b{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.tab{flex:0 1 74px;font-size:13px;white-space:nowrap}
+.t-light .b{background:radial-gradient(circle at 40% 35%,#ffd86a,#c98f14)}
+.t-heat .b{background:radial-gradient(circle at 40% 35%,#ff9a52,#b8481a)}
+.t-mood .b{background:radial-gradient(circle at 40% 35%,#c99bff,#7a3fd0)}
+.t-music .b{background:radial-gradient(circle at 40% 35%,#8f9bff,#3d3fb8)}
+.t-shade .b{background:radial-gradient(circle at 40% 35%,#8fd0ff,#2c6fae)}
+.tab[aria-pressed=true]{color:var(--ink)}
+.tab[aria-pressed=true] .b{box-shadow:0 0 0 3px var(--bg),0 0 0 5px #fff}
+.tab:disabled{opacity:.25;cursor:default}
+button:focus-visible{outline:3px solid #9cc0ff;outline-offset:2px}
+.toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#202938;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center;z-index:9}
+.toast.show{opacity:1}.toast.err{color:#ff8a7a}
+.src{color:var(--mut);font-size:13px;text-align:center;margin-top:12px}
+.mg{position:absolute;inset:13% 9%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 4px;align-content:center;justify-items:center}
+.mb{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;color:#fff;font:800 12px var(--f);cursor:pointer;width:100%;padding:0}
+.mb .o{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:rgba(30,20,10,.8);box-shadow:0 4px 12px rgba(0,0,0,.4);transition:transform .15s}
+.mb:active .o{transform:scale(.92)}
+.mb .t{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.mctl{display:flex;align-items:center;justify-content:center;gap:22px}
+.rb{width:58px;height:58px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink);display:grid;place-items:center;cursor:pointer;font:800 12px var(--f)}
+.rb.big{width:78px;height:78px;background:#fff;color:#3d3fb8;border:0;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.rbl{display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:800;font-size:13px;color:var(--mut)}
+.shadeov{position:absolute;left:0;right:0;top:0;background:repeating-linear-gradient(#ece6d9 0 8px,#d3cabb 8px 10px);box-shadow:0 3px 10px rgba(0,0,0,.45);transition:height .2s}
+.kc.sh{text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.trk{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800;color:#fff;font-size:15px;margin-top:6px}
+.hint{color:var(--mut);font-size:14px;text-align:center}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section id="home">
+    <div class="top">
+      <div><h1 id="greet">God kveld</h1><div class="date" id="date"></div></div>
+      <button class="icbtn" id="scopeBtn" aria-label="Hele huset eller etasje" aria-expanded="false"></button>
+    </div>
+    <div class="menu" id="menu" hidden>
+      <button data-s="house">Hele huset</button>
+      <button data-s="f2">2. etasje</button>
+      <button data-s="f1">1. etasje</button>
+    </div>
+    <div class="pills"><div class="pb" id="wx"></div><div class="pb" id="pw"></div></div>
+    <svg class="wheel" id="wheel" viewBox="0 0 400 400" tabindex="0" role="slider" aria-label="Velg rom: dra rundt hjulet, Enter åpner"></svg>
+    <div id="cards"></div>
+    <button class="wide" id="allOff"></button>
+    <div class="modes" id="modes"></div>
+    <p class="src" id="src"></p>
+  </section>
+
+  <section id="room" hidden>
+    <div class="rhead">
+      <button class="icbtn" id="back" aria-label="Tilbake til hjulet"></button>
+      <div><h2 id="rName"></h2><div class="date" id="rSub"></div></div>
+    </div>
+    <div class="knob" id="knob">
+      <svg id="ring" viewBox="0 0 300 300" aria-hidden="true"></svg>
+      <div id="disk"></div>
+      <div class="kc" id="kc"></div>
+    </div>
+    <div class="kval" id="kval"></div>
+    <div class="lamps" id="lamps"></div>
+    <div class="under" id="under"></div>
+    <div class="tabs" id="tabs"></div>
+  </section>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+<script>
+{
+const ICON={
+  sofa:'M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M3 11a2 2 0 0 1 2 2v2h14v-2a2 2 0 1 1 4 0v4H1v-4a2 2 0 0 1 2-2zM5 17v2M19 17v2',
+  bath:'M3 12h18v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM5 12V6a2 2 0 0 1 4 0M7 19l-1 2M17 19l1 2',
+  hall:'M5 21V3h14v18M9 21V9h6v12M3 21h18',
+  door:'M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17M4 21h16M14.5 12h.01',
+  wash:'M5 3h14v18H5zM5 7h14M8 5h.01M12 10a4 4 0 1 0 0 8a4 4 0 1 0 0-8',
+  desk:'M3 4h18v12H3zM8 20h8M12 16v4',
+  tv:'M3 7h18v12H3zM8 3l4 4 4-4',
+  bed:'M3 19V6M3 14h18v5M21 19v-5M6 14v-2a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2',
+  bedk:'M3 19V8M3 14h18v5M21 19v-5M6 14v-2a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2M17 4l.8 1.7 1.8.3-1.3 1.2.3 1.8-1.6-.9-1.6.9.3-1.8L15.4 6l1.8-.3z',
+  umb:'M3 12a9 9 0 0 1 18 0zM12 12v7a2 2 0 0 1-4 0',
+  balc:'M3 21h18M5 21v-7h14v7M9.5 14v7M14.5 14v7M4 14h16M8 3h8v7H8z',
+  car:'M3 9l9-5 9 5M6 19v-4l1.5-4h9l1.5 4v4zM6 15h12M8 19v1.5M16 19v1.5',
+  bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.4 1 2.5h6c0-1.1.4-1.9 1-2.5A6 6 0 0 0 12 3z',
+  flame:'M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z',
+  power:'M12 3v9M6.3 7a8 8 0 1 0 11.4 0',
+  window:'M4 4h16v16H4zM12 4v16M4 12h16',
+  cloud:'M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z',
+  bolt:'M13 2L4 14h7l-1 8 9-12h-7z',
+  home:'M3 11l9-7 9 7M5 10v10h14V10',
+  moon:'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',
+  users:'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7.5M22 21a7 7 0 0 0-4-6.3',
+  bag:'M4 7h16v13H4zM9 7V4h6v3M4 12h16',
+  back:'M15 5l-7 7 7 7',
+  spark:'M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z',
+  note:'M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+  blind:'M3 3h18M5 3v11h14V3M5 6.5h14M5 10h14M12 14v4M12 18a1.5 1.5 0 1 0 0 3',
+  play:'M8 5v14l11-7z',pause:'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z',next:'M5 5l9 7-9 7zM17 5v14',prev:'M19 5l-9 7 9 7zM7 5v14',
+  up:'M6 15l6-6 6 6',down:'M6 9l6 6 6-6',stop:'M7 7h10v10H7z',
+  sliders:'M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4'
+};
+const ROOMS=[
+ {k:'stue',n:'Stue & kjøkken',s:'Stue',f:2,ic:'sofa',zone:'Stue & Kjøkken',sensor:'Klima stue og kjøkken',dev:[['Varmepumpe 2. etg','vp','K3_Man_VP2'],['Termostat Stue','gulv','K3_Man_Stue']]},
+ {k:'veranda',out:1,n:'Veranda',s:'Veranda',f:2,ic:'balc',zone:'Veranda',sensor:'Klima ute',dev:[]},
+ {k:'bad2',n:'Bad 2. etasje',s:'Bad oppe',f:2,ic:'bath',zone:'Bad 2. Etasje',dev:[['Termostat bad 2.','gulv','K3_Man_Bad2']]},
+ {k:'sov',n:'Hovedsoverom',s:'Soverom',f:2,ic:'bed',zone:'Hovedsoverom',dev:[]},
+ {k:'gang2',n:'Gang 2. etasje',s:'Gang oppe',f:2,ic:'hall',zone:'Gang 2. Etasje',dev:[['Termostat Gang 2.','gulv','K3_Man_Gang2']]},
+ {k:'sunniva',n:'Sunnivas rom',s:'Sunniva',f:1,ic:'bedk',zone:'Sunniva sitt rom',dev:[]},
+ {k:'kontor',n:'Gjesterom / kontor',s:'Kontor',f:1,ic:'desk',zone:'Gjesterom / kontor',dev:[['Panel Heater','ovn','K3_Man_Kontor']]},
+ {k:'bad1',n:'Bad 1. etasje',s:'Bad nede',f:1,ic:'bath',zone:'Bad 1. Etasje',dev:[['Termostat bad 1.','gulv','K3_Man_Bad1']]},
+ {k:'vask',n:'Vaskerom',s:'Vaskerom',f:1,ic:'wash',zone:'Vaskerom',dev:[['Termostat Vaskerom','gulv','K3_Man_Vaskerom']]},
+ {k:'inngang',n:'Inngang',s:'Inngang',f:1,ic:'door',zone:'Inngang',dev:[['Termostat Inngang','gulv','K3_Man_Inngang']]},
+ {k:'carport',out:1,n:'Carport',s:'Carport',f:1,ic:'car',zone:'Carport',sensor:'Bevegelses sensor carport',dev:[]},
+ {k:'terrasse',out:1,n:'Terrasse',s:'Terrasse',f:1,ic:'umb',zone:'Terrasse',sensor:'Klima ute',dev:[]},
+ {k:'kjeller',n:'Kjellerstue',s:'Kjellerstue',f:1,ic:'tv',zone:'Kjellerstue',sensor:'1. Etg Kjellerstue Klima',dev:[['Varmepumpe 1. etg','vp','K3_Man_VP1'],['Termostat Kjellerstue','gulv','K3_Man_Kjeller']]}
+];
+const DOORS=['Verandadør','Terassedør','Inngangsdør','Dør vaskerom'];
+const KIND={vp:'Varmepumpe',gulv:'Gulvvarme',ovn:'Panelovn'};
+const BE={set:null,setVar:null,setMood:null,hap(){},refresh:null,sample:true,fixed:null};
+
+const S={dev:{},list:[],vars:{},moods:[],at:null};
+const pend={},queue={};let qTimer=null;
+const $=id=>document.getElementById(id);
+const fmt=v=>v==null||isNaN(v)?'–':(Math.round(v*10)/10).toFixed(1).replace('.',',');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const clampT=v=>Math.min(30,Math.max(5,Math.round(v*2)/2));
+const key=d=>d.id||d.name;
+const svgIc=(k,s=22,w=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]}"/></svg>`;
+const avg=a=>{a=a.filter(v=>v!=null&&!isNaN(v));return a.length?a.reduce((x,y)=>x+y,0)/a.length:null};
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setDevices(list){S.list=list||[];S.dev={};for(const d of S.list)S.dev[d.name]=d}
+function setVars(arr){S.vars=Object.fromEntries((arr||[]).map(v=>[v.name,{id:v.id,value:v.value}]))}
+
+/* ---------- getters ---------- */
+const dev=n=>S.dev[n];
+function val(d,cap){if(!d)return null;const p=pend[key(d)];if(p&&cap in p&&Date.now()-p.t<120000)return p[cap];return d.state[cap]}
+const target=n=>val(dev(n),'target_temperature');
+function roomTemp(r){const s=r.sensor?dev(r.sensor):r.dev[0]&&dev(r.dev[0][0]);return s?s.state.measure_temperature:null}
+function roomHum(r){const s=r.sensor&&dev(r.sensor);return s?s.state.measure_humidity:null}
+const roomTarget=r=>r.dev[0]?target(r.dev[0][0]):null;
+function devHeat(n,k){const d=dev(n);if(!d)return false;const st=d.state;
+  if(k==='vp')return !!st.onoff&&st.measure_status==='Heat';
+  if(k==='ovn')return !!st.onoff&&(st.measure_power||0)>50;
+  return !!st.thermostat_state}
+function devState(n,k){const d=dev(n);if(!d)return 'Ikke funnet';if(d.state.onoff===false)return k==='vp'?'Av (pause)':'Av';return devHeat(n,k)?'Varmer':'Hviler'}
+const roomHeat=r=>r.dev.some(([n,k])=>devHeat(n,k));
+const manVal=v=>Number(S.vars[v]&&S.vars[v].value)||0;
+const roomMan=r=>r.dev.some(d=>manVal(d[2])!==0);
+const isLight=d=>d.type==='light'||(d.type==='socket'&&/^lys/i.test(d.name));
+const allLights=()=>S.list.filter(isLight);
+const roomLights=r=>allLights().filter(d=>d.zone&&d.zone.includes(r.zone));
+const lOn=d=>!!val(d,'onoff');
+const hasDim=d=>'dim' in d.state;
+const hasHue=d=>'light_hue' in d.state;
+const hasTemp=d=>'light_temperature' in d.state;
+const varVal=n=>S.vars[n]?S.vars[n].value:null;
+const isSpeaker=d=>d.type==='speaker';
+const isShade=d=>['sunshade','blinds','curtain','windowcoverings'].includes(d.type);
+const inZone=(d,r)=>d.zone&&d.zone.includes(r.zone);
+const roomSpeakers=r=>S.list.filter(d=>isSpeaker(d)&&inZone(d,r));
+const roomShades=r=>S.list.filter(d=>isShade(d)&&inZone(d,r));
+const floorZone=r=>r.f===2?'Hjem > 2 etasje':'Hjem > 1 etasje';
+const roomMoods=r=>S.moods.filter(m=>m.zone&&(m.zone.includes(r.zone)||(!r.out&&m.zone===floorZone(r))));
+const reEsc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function moodName(m){let n=m.name;const z=(m.zone||'').split(' > ').pop().trim();
+  for(const w of [z,'Stue & Kjøkken','Soverom','veranda','Carport','1. etg','2. etg'])if(w)n=n.replace(new RegExp('\\s*[-–]?\\s*'+reEsc(w)+'\\s*[-–]?\\s*','i'),' ');
+  n=n.trim();return n?n.charAt(0).toUpperCase()+n.slice(1):m.name}
+function moodBg(n){n=n.toLowerCase();
+  if(/natt/.test(n))return 'radial-gradient(circle at 35% 30%,#9d8cff,#3a2a9a)';
+  if(/tv|film/.test(n))return 'radial-gradient(circle at 35% 30%,#a6b4ff,#4a4fc4)';
+  if(/kveld|kos/.test(n))return 'radial-gradient(circle at 35% 30%,#ffc08a,#d0642a)';
+  if(/morgen/.test(n))return 'radial-gradient(circle at 35% 30%,#ffe0c4,#f09a6a)';
+  if(/les/.test(n))return 'radial-gradient(circle at 35% 30%,#fff7e6,#e9c88e)';
+  if(/jobb/.test(n))return 'radial-gradient(circle at 35% 30%,#f2f7ff,#9ab8ea)';
+  if(/dag/.test(n))return 'radial-gradient(circle at 35% 30%,#fffbe0,#efd56a)';
+  return 'radial-gradient(circle at 35% 30%,#ffe39a,#d9a530)'}
+
+/* ---------- sending ---------- */
+let tt=null;
+function toast(t,err){const e=$('toast');e.textContent=t;e.className='toast show'+(err?' err':'');clearTimeout(tt);tt=setTimeout(()=>e.className='toast',err?5000:2200)}
+function put(d,caps){const k=key(d);pend[k]=Object.assign(pend[k]&&Date.now()-pend[k].t<120000?pend[k]:{},caps,{t:Date.now()});if(d.id)queue[d.id]=Object.assign(queue[d.id]||{},caps)}
+function go(n,delay){render();if(!BE.set){toast('Eksempeldata – ikke sendt til Homey');return}
+  clearTimeout(qTimer);qTimer=setTimeout(flush,delay)}
+async function flush(){
+  const ids=Object.keys(queue);if(!ids.length)return;
+  const state={};for(const id of ids){state[id]=queue[id];delete queue[id]}
+  try{await BE.set(state);toast('Lagret');if(BE.refresh)setTimeout(BE.refresh,1500)}
+  catch(e){for(const id of ids)delete pend[id];render();toast('Klarte ikke å sende: '+(e&&e.message||e&&e.code||'ukjent feil'),true)}
+}
+
+/* ---------- home: wheel ---------- */
+const N=ROOMS.length,STEP=360/N;
+let th=0;
+try{const k=localStorage.getItem('ft-room');const i=ROOMS.findIndex(r=>r.k===k);if(i>=0)th=-i*STEP}catch(e){}
+const norm=a=>((a%360)+540)%360-180;
+const activeIdx=()=>((Math.round(-th/STEP)%N)+N)%N;
+const rad=d=>(d-90)*Math.PI/180;
+const pt=(r,d,c=200)=>[c+r*Math.cos(rad(d)),c+r*Math.sin(rad(d))];
+function sector(a0,a1,r0,r1){const p=[pt(r1,a0),pt(r1,a1),pt(r0,a1),pt(r0,a0)];return `M${p[0]}A${r1} ${r1} 0 0 1 ${p[1]}L${p[2]}A${r0} ${r0} 0 0 0 ${p[3]}Z`}
+function arcPath(r,a0,a1,rev){const p0=pt(r,rev?a1:a0),p1=pt(r,rev?a0:a1);return `M${p0}A${r} ${r} 0 0 ${rev?0:1} ${p1}`}
+let TICKS='';for(let i=0;i<180;i++){const a=i*2,[x0,y0]=pt(187,a),[x1,y1]=pt(i%5?195:198,a);TICKS+=`<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`}
+const DEFS=`<defs>
+ <linearGradient id="gMetal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef1f4"/><stop offset=".45" stop-color="#8c939d"/><stop offset=".55" stop-color="#cfd3d9"/><stop offset="1" stop-color="#6b727c"/></linearGradient>
+ <radialGradient id="gSeg" cx="200" cy="200" r="160" gradientUnits="userSpaceOnUse"><stop offset=".45" stop-color="#151b26"/><stop offset="1" stop-color="#232c3b"/></radialGradient>
+ <radialGradient id="gWarm" cx="200" cy="200" r="160" gradientUnits="userSpaceOnUse"><stop offset=".45" stop-color="#5e2a12"/><stop offset="1" stop-color="#e8782e"/></radialGradient>
+ <radialGradient id="gGold" cx="200" cy="200" r="160" gradientUnits="userSpaceOnUse"><stop offset=".45" stop-color="#3b3518"/><stop offset="1" stop-color="#c9b45a"/></radialGradient>
+ <radialGradient id="gCold" cx="200" cy="200" r="160" gradientUnits="userSpaceOnUse"><stop offset=".45" stop-color="#141f45"/><stop offset="1" stop-color="#2f4fd0"/></radialGradient>
+ <radialGradient id="gHub" cx=".5" cy=".35" r=".75"><stop offset="0" stop-color="#1d2533"/><stop offset="1" stop-color="#0c1018"/></radialGradient>
+</defs>`;
+function drawWheel(){
+  const ai=activeIdx();let segs='',labels='',defs='';
+  ROOMS.forEach((r,i)=>{
+    const a=norm(i*STEP+th),act=i===ai;
+    const t=roomTemp(r),tg=roomTarget(r),heat=roomHeat(r),cold=t!=null&&tg!=null&&t<tg-0.7;
+    const lit=roomLights(r).filter(lOn).length;
+    const fill=heat?'url(#gWarm)':cold?'url(#gCold)':lit?'url(#gGold)':'url(#gSeg)';
+    const [cx,cy]=pt(116,a);
+    let dots='';for(let j=0;j<Math.min(lit,5);j++){const [x,y]=pt(150-j*8,a+STEP/2-5);dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="#ffd36b"/>`}
+    if(roomSpeakers(r).some(d=>d.state.speaker_playing)){const [x,y]=pt(150,a-STEP/2+5);dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#b9a2ff"/>`}
+    segs+=`<g data-i="${i}"><path d="${sector(a-STEP/2+.5,a+STEP/2-.5,74,158)}" fill="${fill}" stroke="${act?'rgba(255,255,255,.85)':'#0a0d13'}" stroke-width="${act?2:1.5}" ${act?'':'opacity=".92"'}/>
+      <path d="${ICON[r.ic]}" transform="translate(${(cx-11).toFixed(1)},${(cy-25).toFixed(1)}) scale(.92)" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" opacity="${act?1:.85}"/>
+      <text x="${cx.toFixed(1)}" y="${(cy+15).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="800" fill="${heat?'#ffd2b0':'#fff'}">${t==null?'':fmt(t).replace(/,0$/,'')+'°'}</text>${dots}</g>`;
+    const rev=Math.abs(a)>90;
+    defs+=`<path id="lp${i}" d="${arcPath(171,a-26,a+26,rev)}"/>`;
+    if(lit)labels+=`<path d="${arcPath(183,a-STEP/2+2,a+STEP/2-2,false)}" fill="none" stroke="#d98a3a" stroke-width="2.5" stroke-linecap="round"/>`;
+    labels+=`<text font-size="${act?15:12.5}" font-weight="${act?900:800}" fill="${act?'#fff':lit?'#e8b07a':'#9aa3b2'}" dominant-baseline="central"><textPath href="#lp${i}" startOffset="50%" text-anchor="middle">${esc(r.s)}</textPath></text>`;
+  });
+  const r=ROOMS[ai],L=roomLights(r),lit=L.filter(lOn).length,t=roomTemp(r);
+  const sub=[L.length?(lit?lit+' lys på':'Lys av'):null,t!=null?fmt(t)+'°':null].filter(Boolean).join(' · ');
+  $('wheel').innerHTML=DEFS.replace('</defs>',defs+'</defs>')+`
+    <circle cx="200" cy="200" r="192" fill="none" stroke="url(#gMetal)" stroke-width="16"/>
+    <g stroke="rgba(30,34,40,.5)" stroke-width=".8">${TICKS}</g>
+    <circle cx="200" cy="200" r="171" fill="none" stroke="#0b0f16" stroke-width="26"/>
+    ${segs}${labels}
+    <path d="M192 41h16l-8 10z" fill="#fff"/>
+    <g data-c="1"><circle cx="200" cy="200" r="70" fill="url(#gHub)" stroke="#3a4558" stroke-width="2"/>
+      <path d="${arcPath(70,-30,150,false)}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/>
+      <circle cx="200" cy="157" r="15" fill="#263042"/>
+      <path d="${ICON[r.ic]}" transform="translate(190,147) scale(.83)" fill="none" stroke="#dfe4ec" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="200" y="194" text-anchor="middle" font-size="${r.s.length>9?19:22}" font-weight="900">${esc(r.s)}</text>
+      <text x="200" y="216" text-anchor="middle" font-size="13" font-weight="800" fill="#c9ced8">${esc(sub)}</text>
+      <text x="200" y="236" text-anchor="middle" font-size="11.5" font-weight="700" fill="#7f899a">Trykk for å åpne</text></g>`;
+  $('wheel').setAttribute('aria-valuetext',r.n);
+}
+let raf=0;const schedule=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;drawWheel()})};
+let anim=null;
+function rotateTo(i){
+  const goal=th+norm(-i*STEP-th),from=th,t0=performance.now(),dur=reduced?0:260;
+  cancelAnimationFrame(anim);
+  const stepA=now=>{const p=dur?Math.min(1,(now-t0)/dur):1,e=1-Math.pow(1-p,3);th=from+(goal-from)*e;drawWheel();if(p<1)anim=requestAnimationFrame(stepA);else{th=goal;saveActive()}};
+  anim=requestAnimationFrame(stepA);
+}
+function saveActive(){try{localStorage.setItem('ft-room',ROOMS[activeIdx()].k)}catch(e){}}
+{
+  const W=$('wheel');let drag=null;
+  const sp=e=>{const r=W.getBoundingClientRect();return[(e.clientX-r.left)/r.width*400-200,(e.clientY-r.top)/r.height*400-200]};
+  const ang=([x,y])=>Math.atan2(x,-y)*180/Math.PI;
+  W.addEventListener('pointerdown',e=>{const p=sp(e),d=Math.hypot(p[0],p[1]);if(d>200)return;cancelAnimationFrame(anim);
+    drag={inner:d<70,last:ang(p),moved:0,ai:activeIdx(),hit:e.target.closest?e.target.closest('[data-i]'):null};try{W.setPointerCapture(e.pointerId)}catch(_){}});
+  W.addEventListener('pointermove',e=>{if(!drag)return;const p=sp(e);if(Math.hypot(p[0],p[1])<24)return;
+    const a=ang(p),d=norm(a-drag.last);drag.last=a;drag.moved+=Math.abs(d);
+    if(drag.moved>5){th+=d;const ai=activeIdx();if(ai!==drag.ai){drag.ai=ai;BE.hap()}schedule()}});
+  const end=()=>{if(!drag)return;const dd=drag;drag=null;
+    if(dd.moved<=5){if(dd.inner){openRoom([ROOMS[activeIdx()]]);return}if(dd.hit){BE.hap();rotateTo(+dd.hit.dataset.i);return}}
+    rotateTo(activeIdx())};
+  W.addEventListener('pointerup',end);W.addEventListener('pointercancel',end);
+  W.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();rotateTo((activeIdx()+1)%N)}
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();rotateTo((activeIdx()-1+N)%N)}
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();openRoom([ROOMS[activeIdx()]])}});
+}
+
+/* ---------- home: rest ---------- */
+function renderHome(){
+  const h=new Date().getHours();
+  $('greet').textContent=h<5?'God natt':h<10?'God morgen':h<12?'God formiddag':h<18?'God ettermiddag':'God kveld';
+  const ds=new Date().toLocaleDateString('no-NO',{weekday:'long',day:'numeric',month:'long'});$('date').textContent=ds.charAt(0).toUpperCase()+ds.slice(1);
+  const wx=dev('Værvarsel'),out=dev('Klima ute');
+  const ot=out?out.state.measure_temperature:wx?wx.state.measure_temperature:null;
+  $('wx').innerHTML=svgIc('cloud',20)+`${fmt(ot).replace(/,0$/,'')}° <span>${esc(wx&&wx.state.weather_description||'Ute')}</span>`;
+  const pulse=S.list.find(d=>d.state&&'meter_power.imported' in d.state&&'measure_power' in d.state)||dev('Pulse Furutoppen 28');
+  const bill=S.list.find(d=>d.state&&'meter_price_incl' in d.state);
+  const kw=pulse?pulse.state.measure_power/1000:null,pr=bill?bill.state.meter_price_incl:null;
+  $('pw').innerHTML=svgIc('bolt',20)+`${kw==null?'–':kw.toFixed(1).replace('.',',')} kW${pr!=null?` <span>${pr.toFixed(2).replace('.',',')} kr</span>`:''}`;
+  drawWheel();
+  const open=DOORS.filter(n=>dev(n)&&dev(n).state.alarm_contact);
+  const md=varVal('K3_Modus')||'–',pause=varVal('K3_1etgPause')===true;
+  let c='';for(const n of open)c+=`<div class="card alert"><div class="ic">${svgIc('door')}</div><div><b>${esc(n)} er åpen</b><span>Husk å lukke den – varmen pauses imens</span></div></div>`;
+  c+=`<div class="card"><div class="ic">${svgIc('flame')}</div><div><b>Klima: ${esc(md)}</b><span>${open.length?'':'Alle dører er lukket'}${pause?(open.length?'':' · ')+'1. etg-pause er aktiv':''}</span></div></div>`;
+  $('cards').innerHTML=c;
+  const onAll=allLights().filter(lOn).length;
+  $('allOff').innerHTML=svgIc('power',20)+'Slå av alt lys <span>'+(onAll?onAll+' på':'alt er av')+'</span>';$('allOff').disabled=!onAll;
+  const borte=varVal('K3_Borte'),cur=borte==='Ferie'?'ferie':varVal('Hus_Gjestemodus')===true?'gjest':(varVal('Natt')===true||md==='Natt')?'natt':'hjem';
+  $('modes').innerHTML=[['hjem','home',borte==='Spare'?'Borte':'Hjemme'],['natt','moon','Natt'],['gjest','users','Gjester'],['ferie','bag','Ferie']]
+    .map(([k,ic,l])=>`<div class="mode${k===cur?' on':''}">${svgIc(ic,24)}${l}</div>`).join('');
+  $('src').textContent=BE.sample?(BE.waitText||'Eksempeldata fra 23.11 kl. 23.10 – venter på Homey'):S.at?'Oppdatert '+S.at.toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'}):'';
+}
+$('scopeBtn').innerHTML=svgIc('sliders',22);$('back').innerHTML=svgIc('back',22,2.2);
+$('scopeBtn').addEventListener('click',()=>{const m=$('menu');m.hidden=!m.hidden;$('scopeBtn').setAttribute('aria-expanded',String(!m.hidden))});
+$('menu').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;$('menu').hidden=true;
+  const s=b.dataset.s;openRoom(s==='house'?ROOMS:ROOMS.filter(r=>r.f===(s==='f2'?2:1)),b.textContent)});
+$('allOff').addEventListener('click',()=>{BE.hap();const L=allLights().filter(lOn);for(const d of L)put(d,{onoff:false});if(L.length)go(L.length,100)});
+
+/* ---------- room view ---------- */
+let view=null,mode='light',sel='all',cmode=null,dragVal=null,pickVal=null;
+const TABS=[['light','Lys','bulb'],['mood','Stemning','spark'],['heat','Varme','flame'],['music','Musikk','note'],['shade','Screen','blind']];
+const RC={heat:'#ffb27a',light:'#ffe08a',mood:'#ffe08a',music:'#b9a2ff',shade:'#9fd3ff'};
+const vLights=()=>view.rooms.flatMap(roomLights);
+const vSpk=()=>view.rooms.flatMap(roomSpeakers);
+const vShd=()=>view.rooms.flatMap(roomShades);
+function vMoods(){const seen=new Set(),out=[];for(const r of view.rooms)for(const m of roomMoods(r))if(!seen.has(m.id)){seen.add(m.id);out.push(m)}return out}
+const heatRooms=()=>view.rooms.filter(r=>r.dev.length);
+function avail(m){return m==='light'?vLights().length>0:m==='mood'?vMoods().length>0:m==='heat'?heatRooms().length>0:m==='music'?vSpk().length>0:vShd().length>0}
+const items=()=>mode==='light'?vLights():mode==='music'?vSpk():mode==='shade'?vShd():[];
+const selected=()=>{const L=items();return sel==='all'?L:L.filter(d=>key(d)===sel)};
+const isOn=d=>isLight(d)?lOn(d):isSpeaker(d)?!!val(d,'speaker_playing'):isShade(d)?(val(d,'windowcoverings_set')!=null&&val(d,'windowcoverings_set')<.97):false;
+const perGroup=L=>{const seen=new Set();return L.filter(d=>{const g=d.state.sonos_group||key(d);if(seen.has(g))return false;seen.add(g);return true})};
+function openRoom(rooms,name,quiet){
+  if(!quiet)BE.hap();view={rooms,name:name||rooms[0].n,single:rooms.length===1};sel='all';cmode=null;dragVal=null;pickVal=null;
+  mode=TABS.map(t=>t[0]).find(avail)||'heat';
+  $('home').hidden=true;$('room').hidden=false;$('menu').hidden=true;try{window.scrollTo(0,0)}catch(e){}
+  if(view.single)try{history.replaceState(null,'','#'+rooms[0].k)}catch(e){}
+  render();
+}
+$('back').addEventListener('click',()=>{BE.hap();view=null;$('room').hidden=true;$('home').hidden=false;try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}render()});
+$('tabs').addEventListener('click',e=>{const t=e.target.closest('[data-m]');if(!t)return;BE.hap();mode=t.dataset.m;sel='all';cmode=null;dragVal=null;pickVal=null;render()});
+
+const MINT=14,MAXT=28;
+function ringSvg(frac,col){
+  const A0=-135,A1=135,P=(r,d)=>pt(r,d,150);
+  const f=frac==null?null:Math.min(1,Math.max(0,frac)),va=A0+(f||0)*270,[kx,ky]=P(124,va),p0=P(124,A0),big=va-A0>180?1:0;
+  const rot=(f||0)*90;let tk='';
+  for(let i=0;i<72;i++){const d=i*5,[a,b]=P(i%3?139:136,d),[c,e]=P(146,d);tk+=`<line x1="${a.toFixed(1)}" y1="${b.toFixed(1)}" x2="${c.toFixed(1)}" y2="${e.toFixed(1)}"/>`}
+  return `<defs><linearGradient id="km" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef1f4"/><stop offset=".5" stop-color="#7d848e"/><stop offset="1" stop-color="#c9ced4"/></linearGradient></defs>
+    <circle cx="150" cy="150" r="143" fill="url(#km)"/>
+    <g stroke="rgba(25,28,34,.55)" stroke-width="1.1" transform="rotate(${rot} 150 150)">${tk}</g>
+    <circle cx="150" cy="150" r="124" fill="none" stroke="#0c1017" stroke-width="22"/>
+    <path d="M${p0}A124 124 0 1 1 ${P(124,A1)}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4" stroke-linecap="round"/>
+    ${f==null||f<=0?'':`<path d="M${p0}A124 124 0 ${big} 1 ${kx} ${ky}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round"/>`}
+    ${f==null?'':`<circle cx="${kx}" cy="${ky}" r="9" fill="#fff" stroke="#333" stroke-width="2"/>`}`;
+}
+function heatValue(){if(dragVal!=null&&mode==='heat')return dragVal;const hr=heatRooms();if(!hr.length)return null;return view.single?roomTarget(hr[0]):(()=>{const a=avg(hr.map(roomTarget));return a==null?null:Math.round(a*2)/2})()}
+// ring model: frac 0..1 for current mode, en = can be turned
+function ringModel(){
+  if(mode==='heat'){const v=heatValue();return{f:v==null?null:(v-MINT)/(MAXT-MINT),en:v!=null}}
+  if(mode==='light'||mode==='mood'){const SL=mode==='light'?selected():vLights(),on=SL.filter(lOn),dv=avg(on.filter(hasDim).map(d=>val(d,'dim')));return{f:on.length?(dv!=null?dv:1):0,en:SL.some(hasDim)}}
+  if(mode==='music'){const SP=selected().filter(d=>'volume_set' in d.state);return{f:avg(SP.map(d=>val(d,'volume_set'))),en:SP.length>0}}
+  const SH=selected().filter(d=>'windowcoverings_set' in d.state);const v=avg(SH.map(d=>val(d,'windowcoverings_set')));return{f:v==null?null:1-v,en:SH.length>0};
+}
+function fromFrac(f){if(mode==='heat')return clampT(MINT+f*(MAXT-MINT));const r=Math.round(f*100)/100;return mode==='light'||mode==='mood'?Math.max(.01,r):r}
+const chip=(k,label,on)=>`<button class="lamp" data-sel="${esc(k)}" aria-pressed="${sel===k}"><i class="${on?'on':''}"></i>${esc(label)}</button>`;
+function powerBtn(L){const on=L.filter(lOn).length;return `<button class="power${on?'':' off'}" id="pwr" aria-label="${on?'Slå av':'Slå på'}">${svgIc('power',34,2.4)}</button><div class="plabel">${on?'Slå av':'Slå på'}${L.length>1?' alle':''}</div>`}
+function renderRoom(){
+  if(!avail(mode))mode=TABS.map(t=>t[0]).find(avail)||'heat';
+  $('tabs').innerHTML=TABS.filter(t=>avail(t[0])).map(([m,l,ic])=>`<button class="tab t-${m}" data-m="${m}" aria-pressed="${m===mode}"><span class="b">${svgIc(ic,24)}</span>${l}</button>`).join('');
+  const rs=view.rooms,L=vLights(),hr=heatRooms();
+  $('rName').textContent=view.name;
+  const t=view.single?roomTemp(rs[0]):avg(hr.map(roomTemp)),h=view.single?roomHum(rs[0]):null;
+  $('rSub').textContent=view.single?[t!=null?'Nå '+fmt(t)+'°':null,h!=null?Math.round(h)+' % fukt':null,L.length?`${L.filter(lOn).length} av ${L.length} lys på`:null].filter(Boolean).join(' · '):`${rs.length} rom`;
+  const disk=$('disk'),kc=$('kc'),kv=$('kval');disk.className='';disk.innerHTML='';kc.className='kc';kc.innerHTML='';kv.style.color='var(--mut)';
+  const R=ringModel();let frac,v;
+  if(mode==='heat'){v=heatValue();frac=v==null?null:(v-MINT)/(MAXT-MINT)}else{v=dragVal!=null?dragVal:R.f;frac=R.en?v:null}
+  $('ring').innerHTML=ringSvg(frac,RC[mode]);
+  const IT=items();
+  if(IT.length>1){$('lamps').hidden=false;$('lamps').innerHTML=chip('all',`Alle (${IT.length})`,IT.some(isOn))+IT.map(d=>chip(key(d),d.name,isOn(d))).join('')}else $('lamps').hidden=true;
+  const U=$('under');
+  if(mode==='heat'){
+    disk.style.background='radial-gradient(circle at 50% 36%,#d06a2a,#8e3d17 70%,#3b1a0c)';
+    const man=hr.filter(roomMan).length,m=varVal('K3_Modus')||'–';
+    kc.innerHTML=`<div class="nm">${view.single?'Mål':'Snittmål'}</div><div class="big">${fmt(v)}<small>°</small></div>
+      <div class="now">${t!=null?'Nå '+fmt(t)+'°':''}</div>
+      <div class="pill${man?' man':''}">${view.single?(man?'Manuell til natten':'Automatikk · '+esc(m)):(man?man+' av '+hr.length+' rom manuelt':'Automatikk · '+esc(m))}</div>`;
+    kv.textContent='Dra i ringen for å endre temperaturen';
+    const list=view.single?hr[0].dev.map(([n,k,mv])=>{const d=dev(n),m2=manVal(mv);
+      return `<li><div><div class="n">${KIND[k]}</div><div class="s">${esc(n)}${d&&d.state.measure_temperature!=null?' · måler '+fmt(d.state.measure_temperature)+'°':''}</div></div><span class="tag ${devHeat(n,k)?'h':m2?'m':''}">${m2?'Manuell':esc(devState(n,k))}</span><span class="v">${fmt(target(n))}°</span></li>`}).join('')
+      :hr.map(x=>`<li><div><div class="n">${esc(x.n)}</div><div class="s">Nå ${fmt(roomTemp(x))}°</div></div><span class="tag ${roomHeat(x)?'h':roomMan(x)?'m':''}">${roomHeat(x)?'Varmer':roomMan(x)?'Manuell':'Auto'}</span><span class="v">${fmt(roomTarget(x))}°</span></li>`).join('');
+    U.innerHTML=`<button class="btn" id="auto" ${hr.some(roomMan)?'':'disabled'}>Tilbake til automatikk</button><ul class="devs">${list}</ul>`;
+  }else if(mode==='light'){
+    const SL=selected(),on=SL.filter(lOn);
+    const canHue=SL.some(hasHue),canTemp=SL.some(hasTemp);
+    if(!cmode)cmode=canHue?'color':canTemp?'white':null;
+    if(cmode==='color'&&!canHue)cmode=canTemp?'white':null;if(cmode==='white'&&!canTemp)cmode=canHue?'color':null;
+    if(cmode){
+      disk.className='pick';
+      disk.style.background=cmode==='color'
+        ?'radial-gradient(circle,#fff 0,rgba(255,255,255,.85) 12%,rgba(255,255,255,0) 72%),conic-gradient(hsl(0,100%,55%),hsl(60,100%,55%),hsl(120,100%,50%),hsl(180,100%,50%),hsl(240,100%,60%),hsl(300,100%,55%),hsl(360,100%,55%))'
+        :'linear-gradient(#b9d4ff,#f4f8ff 45%,#ffe3b8 70%,#ffb85c)';
+      const lamps=SL.filter(d=>(lOn(d)||pickVal)&&(cmode==='color'?hasHue(d):hasTemp(d)));let marks='';
+      lamps.forEach((d,i)=>{let x,y,c;
+        if(cmode==='color'){const hu=pickVal&&pickVal.h!=null?pickVal.h:val(d,'light_hue'),sa=pickVal&&pickVal.s!=null?pickVal.s:val(d,'light_saturation');if(hu==null)return;
+          const a=hu*2*Math.PI,r=(sa==null?1:sa)*46;x=50+Math.sin(a)*r;y=50-Math.cos(a)*r;c=`hsl(${hu*360},${Math.round((sa==null?1:sa)*100)}%,55%)`}
+        else{const tv=pickVal&&pickVal.t!=null?pickVal.t:val(d,'light_temperature');if(tv==null)return;x=50+(i-(lamps.length-1)/2)*9;y=8+tv*84;c=tv>.5?'#ffc27a':'#d8e6ff'}
+        marks+=`<span class="mk" style="left:${x}%;top:${y}%;background:${c}" title="${esc(d.name)}"></span>`});
+      disk.innerHTML=marks+((canHue&&canTemp)?`<div class="cw"><button data-cm="color" aria-pressed="${cmode==='color'}">Farge</button><button data-cm="white" aria-pressed="${cmode==='white'}">Hvit</button></div>`:'');
+      kv.style.color='var(--gold)';
+      kv.textContent=on.length?`${Math.round(v*100)} % · ${on.length} av ${SL.length} på`:`Alt er av · ${SL.length} lys`;
+    }else{
+      disk.style.background=on.length?'radial-gradient(circle at 50% 36%,#f0c64a,#a9801c 70%,#3d2e0a)':'radial-gradient(circle at 50% 36%,#2a3242,#141922)';
+      kc.innerHTML=`<div class="nm">Lysstyrke</div><div class="big">${on.length?Math.round(v*100):0}<small>%</small></div><div class="now">${on.length} av ${SL.length} på</div>`;
+      kv.textContent=R.en?'Dra i ringen for å dimme':'Disse lysene kan ikke dimmes';
+    }
+    U.innerHTML=powerBtn(SL);
+  }else if(mode==='mood'){
+    const M=vMoods(),on=L.filter(lOn).length;
+    disk.style.background='radial-gradient(circle at 50% 36%,#7a5230,#3a2414 70%,#1a1009)';
+    const mb=m=>`<button class="mb" data-mood="${esc(m.id)}"><span class="o" style="background:${moodBg(m.name)}">${svgIc('spark',22,2)}</span><span class="t">${esc(moodName(m))}</span></button>`;
+    if(M.length<=6){disk.innerHTML=`<div class="mg">${M.map(mb).join('')}</div>`}
+    else kc.innerHTML=`<div class="nm">Stemninger</div><div class="big">${M.length}</div><div class="now">Velg under</div>`;
+    kv.textContent=`Trykk for stemning · ringen dimmer rommet (${L.length?Math.round(v*100)+' %':'ingen lys'})`;
+    U.innerHTML=(M.length>6?`<div class="lamps" style="flex-wrap:wrap;justify-content:center">${M.map(m=>`<button class="lamp" data-mood="${esc(m.id)}">${esc(moodName(m))}</button>`).join('')}</div>`:'')+(L.length?powerBtn(L):'');
+  }else if(mode==='music'){
+    const SP=selected(),playing=SP.some(d=>val(d,'speaker_playing')),first=SP.find(d=>d.state.speaker_track)||SP[0];
+    disk.style.background='radial-gradient(circle at 50% 36%,#6a56e8,#2e2490 70%,#141040)';
+    const tr=first&&first.state.speaker_track,ar=first&&first.state.speaker_artist;
+    kc.innerHTML=`<div class="nm">Volum</div><div class="big">${v==null?'–':Math.round(v*100)}<small>%</small></div><div class="trk">${esc(tr||'Ingenting valgt')}</div><div class="now">${esc(ar||'')}</div>`;
+    kv.textContent=`${playing?'Spiller':'Pause'} · ${SP.length} høyttaler${SP.length>1?'e':''} · dra i ringen for volum`;
+    U.innerHTML=`<div class="mctl"><button class="rb" data-mu="prev" aria-label="Forrige">${svgIc('prev',24,2)}</button>
+      <button class="rb big" data-mu="play" aria-label="${playing?'Pause':'Spill'}">${svgIc(playing?'pause':'play',34,2)}</button>
+      <button class="rb" data-mu="next" aria-label="Neste">${svgIc('next',24,2)}</button></div>`;
+  }else{
+    const SH=selected();
+    disk.style.background='linear-gradient(#78b4ee,#3b6fae 60%,#1d3a63)';
+    const down=v==null?0:v;disk.innerHTML=`<div class="shadeov" style="height:${Math.round(down*100)}%"></div>`;
+    kc.className='kc sh';
+    kc.innerHTML=`<div class="nm">Screen</div><div class="big">${v==null?'–':down<=.02?'Oppe':down>=.98?'Nede':Math.round(down*100)+'<small>%</small>'}</div><div class="now">${v==null||down<=.02||down>=.98?'':'nede'}</div>`;
+    kv.textContent=R.en?'Dra i ringen for å kjøre ned eller opp':'Bruk knappene under';
+    U.innerHTML=`<div class="mctl">${[['up','Opp'],['stop','Stopp'],['down','Ned']].map(([k,l])=>`<div class="rbl"><button class="rb" data-sh="${k}" aria-label="${l}">${svgIc(k,24,2.2)}</button>${l}</div>`).join('')}</div>`;
+  }
+}
+function render(){if(view)renderRoom();else renderHome()}
+
+/* ---------- room interactions ---------- */
+{
+  const K=$('knob');let kd=null;
+  const kp=e=>{const r=K.getBoundingClientRect();return[(e.clientX-r.left)/r.width*300-150,(e.clientY-r.top)/r.height*300-150]};
+  const ang=([x,y])=>Math.atan2(x,-y)*180/Math.PI;
+  function ringFrac(p,prev){let a=ang(p);if(Math.abs(a)>135)a=(prev!=null&&prev>.5)?135:-135;return (a+135)/270}
+  function pickAt(p){const R=112;const d=Math.hypot(p[0],p[1]);
+    if(cmode==='color'){let h=Math.atan2(p[0],-p[1])/(2*Math.PI);if(h<0)h+=1;pickVal={h:Math.round(h*1000)/1000,s:Math.round(Math.min(1,d/(R*.92))*100)/100}}
+    else pickVal={t:Math.round(Math.min(1,Math.max(0,(p[1]+R*.92)/(R*1.84)))*100)/100}}
+  const NOPE={light:'Disse lysene kan ikke dimmes',mood:'Ingen lys å dimme her',music:'Volumet kan ikke styres her',shade:'Bruk knappene under'};
+  K.addEventListener('pointerdown',e=>{if(!view||e.target.closest('.cw,.mb'))return;const p=kp(e),d=Math.hypot(p[0],p[1]);if(d>150)return;
+    if(d>=108){const R=ringModel();if(!R.en){toast(NOPE[mode]||'Kan ikke justeres');return}
+      const f=ringFrac(p,R.f);kd={ring:true,last:f};dragVal=fromFrac(f)}
+    else if(mode==='light'&&cmode){kd={ring:false};pickAt(p)}
+    else return;
+    try{K.setPointerCapture(e.pointerId)}catch(_){}BE.hap();renderRoom()});
+  K.addEventListener('pointermove',e=>{if(!kd)return;const p=kp(e);
+    if(kd.ring){const f=ringFrac(p,kd.last);kd.last=f;const nv=fromFrac(f);if(nv!==dragVal){const st=mode==='heat'?.5:.05;if(Math.floor(nv/st)!==Math.floor(dragVal/st))BE.hap();dragVal=nv;renderRoom()}}
+    else{pickAt(p);renderRoom()}});
+  const end=()=>{if(!kd)return;const k=kd;kd=null;
+    if(k.ring){const v=dragVal;dragVal=null;if(v!=null)commitRing(v)}
+    else if(pickVal){const pv=pickVal;pickVal=null;commitPick(pv)}};
+  K.addEventListener('pointerup',end);K.addEventListener('pointercancel',end);
+  K.addEventListener('click',e=>{const b=e.target.closest('[data-cm]');if(b){BE.hap();cmode=b.dataset.cm;renderRoom();return}
+    const mo=e.target.closest('[data-mood]');if(mo)setMood(mo.dataset.mood)});
+  K.tabIndex=0;K.setAttribute('role','slider');K.setAttribute('aria-label','Dra i ringen. Piltaster justerer');
+  K.addEventListener('keydown',e=>{if(!view)return;const up=e.key==='ArrowUp'||e.key==='ArrowRight',dn=e.key==='ArrowDown'||e.key==='ArrowLeft';if(!up&&!dn)return;e.preventDefault();
+    if(mode==='heat'){const v=heatValue();if(v!=null)commitRing(clampT(v+(up?.5:-.5)))}
+    else{const R=ringModel();if(R.en)commitRing(fromFrac(Math.min(1,Math.max(0,(R.f||0)+(up?.1:-.1)))))}});
+}
+function commitRing(v){
+  if(mode==='heat'){const base=heatValue();if(base==null)return;const delta=v-base;if(!delta){render();return}let n=0;
+    for(const r of heatRooms())for(const [name] of r.dev){const d=dev(name),cur=target(name);if(!d||cur==null)continue;put(d,{target_temperature:clampT(cur+delta)});n++}
+    if(n)go(n,300);else render();return}
+  if(mode==='light'||mode==='mood'){const L=(mode==='light'?selected():vLights()).filter(hasDim);for(const d of L)put(d,lOn(d)?{dim:v}:{dim:v,onoff:true});if(L.length)go(L.length,150);else render();return}
+  if(mode==='music'){const SP=selected().filter(d=>'volume_set' in d.state);for(const d of SP)put(d,d.state.volume_mute?{volume_set:v,volume_mute:false}:{volume_set:v});if(SP.length)go(SP.length,150);else render();return}
+  const SH=selected().filter(d=>'windowcoverings_set' in d.state);for(const d of SH)put(d,{windowcoverings_set:Math.round((1-v)*100)/100});if(SH.length)go(SH.length,150);else render();
+}
+function commitPick(pv){
+  const SL=selected();let n=0;
+  for(const d of SL){
+    if(pv.h!=null&&hasHue(d)){const c={light_hue:pv.h,light_saturation:pv.s};if('light_mode' in d.state)c.light_mode='color';if(!lOn(d))c.onoff=true;put(d,c);n++}
+    if(pv.t!=null&&hasTemp(d)){const c={light_temperature:pv.t};if('light_mode' in d.state)c.light_mode='temperature';if(!lOn(d))c.onoff=true;put(d,c);n++}}
+  if(n)go(n,150);else render();
+}
+async function sendNow(state,okMsg){if(!BE.set){toast('Eksempeldata – ikke sendt til Homey');return}
+  try{await BE.set(state);if(okMsg)toast(okMsg);if(BE.refresh)setTimeout(BE.refresh,1200)}catch(e){toast('Klarte ikke å sende: '+(e&&e.message||e),true)}}
+async function setMood(id){const m=S.moods.find(x=>x.id===id);if(!m)return;BE.hap();
+  if(!BE.setMood){toast('Eksempeldata – «'+moodName(m)+'» ikke sendt');return}
+  try{await BE.setMood(m.id);toast('«'+moodName(m)+'» er satt');if(BE.refresh)setTimeout(BE.refresh,1200)}catch(e){toast('Klarte ikke å sette stemningen: '+(e&&e.message||e),true)}}
+$('lamps').addEventListener('click',e=>{const b=e.target.closest('[data-sel]');if(!b)return;BE.hap();sel=b.dataset.sel;cmode=null;renderRoom()});
+$('under').addEventListener('click',async e=>{
+  if(e.target.closest('#pwr')){BE.hap();const SL=mode==='light'?selected():vLights(),anyOn=SL.some(lOn);const L=SL.filter(d=>lOn(d)===anyOn);for(const d of L)put(d,{onoff:!anyOn});if(L.length)go(L.length,100);return}
+  const mo=e.target.closest('[data-mood]');if(mo){setMood(mo.dataset.mood);return}
+  const mu=e.target.closest('[data-mu]');
+  if(mu){BE.hap();const SP=selected(),a=mu.dataset.mu;
+    if(a==='play'){const to=!SP.some(d=>val(d,'speaker_playing'));const G=perGroup(SP);for(const d of G)put(d,{speaker_playing:to});go(G.length,50)}
+    else{const st={},cap=a==='next'?'speaker_next':'speaker_prev';for(const d of perGroup(SP))if(d.id&&cap in d.state)st[d.id]={[cap]:true};sendNow(st,a==='next'?'Neste låt':'Forrige låt')}
+    return}
+  const sh=e.target.closest('[data-sh]');
+  if(sh){BE.hap();const st={up:'up',stop:'idle',down:'down'}[sh.dataset.sh];const SH=selected().filter(d=>'windowcoverings_state' in d.state);
+    for(const d of SH)put(d,{windowcoverings_state:st});if(SH.length)go(SH.length,50);return}
+  if(e.target.closest('#auto')){const vars=[];for(const r of heatRooms())for(const d of r.dev)if(manVal(d[2])!==0&&S.vars[d[2]])vars.push(d[2]);
+    if(!vars.length)return;if(!BE.setVar){for(const v of vars)S.vars[v].value=0;render();toast('Eksempeldata – ikke sendt');return}
+    e.target.disabled=true;
+    try{for(const v of vars){await BE.setVar(S.vars[v].id,0);S.vars[v].value=0}render();toast('Automatikk igjen – nytt mål ved neste K3-kjøring')}
+    catch(err){render();toast('Klarte ikke å sende: '+(err&&err.message||err),true)}}
+});
+document.addEventListener('click',e=>{if(!$('menu').hidden&&!e.target.closest('#menu,#scopeBtn')){$('menu').hidden=true;$('scopeBtn').setAttribute('aria-expanded','false')}});
+
+function cleanPend(){for(const d of S.list){const p=pend[d.id];if(!p)continue;
+  const done=Object.keys(p).every(c=>c==='t'||d.state[c]===p[c]||(typeof p[c]==='number'&&Math.abs(d.state[c]-p[c])<.011));
+  if(done||Date.now()-p.t>120000)delete pend[d.id]}}
+function applyData(devices,vars,moods){if(devices&&devices.length){setDevices(devices);BE.sample=false;S.at=new Date();cleanPend()}if(vars)setVars(vars);if(moods)S.moods=moods;render()}
+let routed=false;
+function route(){if(routed)return;routed=true;let k=BE.fixed;if(!k||k==='none'){try{k=location.hash.slice(1)}catch(e){k=''}}
+  const r=ROOMS.find(x=>x.k===k);if(r){const i=ROOMS.indexOf(r);th=-i*STEP;openRoom([r],null,true)}}
+
+/* ---------- data: hjemskjerm-app, Homey Web API med API-nøkkel ---------- */
+const DEFAULT_URL='https://68fa0d3b90910ea119fced62.connect.athom.com';
+const APPID='no.furutoppen.klima';
+const CFG={url:'',key:'',via:''};
+try{Object.assign(CFG,JSON.parse(localStorage.getItem('ft-cfg')||'{}'))}catch(e){}
+const saveCfg=()=>{try{localStorage.setItem('ft-cfg',JSON.stringify(CFG))}catch(e){}};
+async function req(method,path,body){
+  const r=await fetch(CFG.url.replace(/\/+$/,'')+path,{method,headers:Object.assign({'Authorization':'Bearer '+CFG.key},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  if(!r.ok){let t='';try{t=(await r.json()).error||''}catch(e){}const e=new Error((r.status===401||r.status===403)?'API-nøkkelen ble avvist ('+r.status+')'+(t?': '+t:''):'Homey svarte '+r.status+(t?': '+t:''));e.status=r.status;throw e}
+  const t=await r.text();return t?JSON.parse(t):null;
+}
+// Direkte mot Homeys manager-API
+const KEEP=new Set(['thermostat','heater','heatpump','airconditioning','light','socket','sensor','speaker','sunshade','blinds','curtain','windowcoverings']);
+const KEEPVARS=new Set(['Natt','Hus_Gjestemodus']);
+async function directState(){
+  const [zones,devices,vars,moods]=await Promise.all([req('GET','/api/manager/zones/zone'),req('GET','/api/manager/devices/device'),req('GET','/api/manager/logic/variable'),req('GET','/api/manager/moods/mood').catch(()=>({}))]);
+  const zp=id=>{const p=[];let z=zones[id],g=0;while(z&&g++<10){p.unshift(z.name);z=z.parent?zones[z.parent]:null}return p.join(' > ')};
+  const out=[];
+  for(const d of Object.values(devices||{})){const type=d.virtualClass||d.class,caps=d.capabilitiesObj||{};
+    const extra='meter_price_incl' in caps||'weather_description' in caps||('measure_power' in caps&&'meter_power.imported' in caps);
+    if(!KEEP.has(type)&&!extra)continue;const state={};for(const [c,o] of Object.entries(caps))state[c]=o?o.value:null;
+    out.push({id:d.id,name:d.name,zone:zp(d.zone),type,state})}
+  return{devices:out,vars:Object.values(vars||{}).filter(v=>v.name&&(v.name.startsWith('K3_')||KEEPVARS.has(v.name))).map(v=>({id:v.id,name:v.name,value:v.value})),
+    moods:Object.values(moods||{}).map(m=>({id:m.id,name:m.name,zone:zp(m.zone)}))};
+}
+const API={
+  direct:{state:directState,
+    set:async state=>{const jobs=[];for(const [id,caps] of Object.entries(state))for(const [c,v] of Object.entries(caps))jobs.push(req('PUT',`/api/manager/devices/device/${id}/capability/${encodeURIComponent(c)}`,{value:v}));
+      const r=await Promise.allSettled(jobs);const f=r.filter(x=>x.status==='rejected');if(f.length)throw f[0].reason},
+    setVar:(id,value)=>req('PUT',`/api/manager/logic/variable/${id}`,{variable:{value}}),
+    setMood:id=>req('POST',`/api/manager/moods/mood/${id}/set`,{})},
+  app:{state:()=>req('GET',`/api/app/${APPID}/state`),
+    set:state=>req('POST',`/api/app/${APPID}/set`,{state}),
+    setVar:(id,value)=>req('POST',`/api/app/${APPID}/variable`,{id,value}),
+    setMood:id=>req('POST',`/api/app/${APPID}/mood`,{id})}
+};
+let busy=false,timer=null;
+async function connect(){
+  // Prøv direkte først, deretter via Furutoppen-appen på Homey
+  const order=CFG.via?[CFG.via,CFG.via==='direct'?'app':'direct']:['direct','app'];let last=null;
+  for(const v of order){try{const st=await API[v].state();CFG.via=v;saveCfg();return st}catch(e){last=e;if(e.status===401)break}}
+  throw last;
+}
+function wire(){const a=API[CFG.via];BE.set=a.set;BE.setVar=a.setVar;BE.setMood=a.setMood;BE.refresh=load}
+async function load(){
+  if(busy||!CFG.key)return;busy=true;
+  try{const st=CFG.via?await API[CFG.via].state().catch(()=>connect()):await connect();wire();applyData(st.devices||[],st.vars||[],st.moods||[]);route()}
+  catch(e){toast('Får ikke kontakt med Homey: '+(e&&e.message||e)+(e instanceof TypeError?' (nettverk eller CORS)':''),true)}
+  finally{busy=false}
+}
+BE.waitText='Venter på Homey …';
+BE.hap=()=>{try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}};
+/* oppsett-skjerm */
+const st=document.createElement('style');st.textContent=`#setup{position:fixed;inset:0;z-index:20;background:var(--bg);overflow:auto;padding:max(24px,env(safe-area-inset-top)) 20px 30px}
+#setup .in{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+#setup h2{font-size:28px;margin:10px 0 0;font-weight:900}#setup p{color:var(--mut);margin:0}
+#setup label{font-weight:800;font-size:15px;display:flex;flex-direction:column;gap:6px}
+#setup input{font:16px var(--f);padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+#setup .row{display:flex;gap:10px;flex-wrap:wrap}#setup .btn2{flex:1;font:800 16px var(--f);min-height:50px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+#setup .btn2.pri{background:var(--warm);border-color:var(--warm);color:#1b1206}#setup .st{min-height:22px;font-weight:700}
+.app{padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(22px,env(safe-area-inset-bottom))}`;document.head.appendChild(st);
+const su=document.createElement('div');su.id='setup';su.hidden=true;
+su.innerHTML=`<div class="in"><h2>Koble til Homey</h2>
+<p>Lag en API-nøkkel i Homey: Innstillinger → API-nøkler → Ny nøkkel. Gi den tilgang til enheter (se og styre), soner, Logic-variabler og stemninger.</p>
+<label>Homey-adresse<input id="suUrl" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<label>API-nøkkel<input id="suKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Lim inn nøkkelen"></label>
+<div class="st" id="suSt"></div>
+<div class="row"><button class="btn2" id="suCancel">Avbryt</button><button class="btn2 pri" id="suSave">Koble til</button></div>
+<p style="font-size:13px">Nøkkelen lagres bare på denne enheten. Den sendes kun til Homey-adressen over.</p></div>`;
+document.body.appendChild(su);
+function openSetup(){$('suUrl').value=CFG.url||DEFAULT_URL;$('suKey').value=CFG.key||'';$('suSt').textContent='';$('suCancel').hidden=!CFG.key;su.hidden=false}
+$('suCancel').addEventListener('click',()=>{su.hidden=true});
+$('suSave').addEventListener('click',async()=>{
+  const url=$('suUrl').value.trim(),key=$('suKey').value.trim();if(!/^https:\/\//.test(url)){$('suSt').textContent='Adressen må starte med https://';return}if(!key){$('suSt').textContent='Lim inn API-nøkkelen';return}
+  const old=Object.assign({},CFG);Object.assign(CFG,{url,key,via:''});$('suSt').textContent='Kobler til …';$('suSave').disabled=true;
+  try{const s=await connect();wire();applyData(s.devices||[],s.vars||[],s.moods||[]);su.hidden=true;toast(CFG.via==='direct'?'Koblet til Homey':'Koblet til via Furutoppen-appen');start()}
+  catch(e){Object.assign(CFG,old);$('suSt').textContent='Feilet: '+(e&&e.message||e)+(e instanceof TypeError?' – nettverk, eller Homey sperrer kall fra denne siden (CORS)':'')}
+  finally{$('suSave').disabled=false}});
+const mi=document.createElement('button');mi.textContent='Homey-tilkobling';mi.addEventListener('click',()=>{$('menu').hidden=true;openSetup()});$('menu').appendChild(mi);
+function start(){clearInterval(timer);load();timer=setInterval(()=>{if(document.visibilityState!=='hidden')load()},5000)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')load()});
+render();
+if(CFG.key)start();else openSetup();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+}
+</script>
+</body>
+</html>
